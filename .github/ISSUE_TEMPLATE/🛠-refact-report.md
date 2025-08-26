@@ -1,6 +1,6 @@
 ---
 name: "\U0001F6E0 REFACT report"
-about: 코드 리펙토링
+about: 코드 리팩토링
 title: "[\U0001F6E0 REFACT]"
 labels: documentation
 assignees: ''
