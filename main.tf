@@ -195,42 +195,44 @@ resource "aws_instance" "web_server" {
   user_data = <<-EOF
               #!/bin/bash
               set -euo pipefail
-
-              apt update -y
-              apt install -y curl unzip software-properties-common git
-
-              # Java 17 (Amazon Corretto)
-              apt install -y java-17-amazon-corretto-jdk
-
-              # Timezone
+              export DEBIAN_FRONTEND=noninteractive
+              
+              # ---------- Base packages ----------
+              apt-get update -y
+              apt-get install -y curl unzip git
+              
+              # ---------- Java (OpenJDK 17, headless JDK) ----------
+              apt-get install -y openjdk-17-jdk-headless
+              
+              # ---------- Timezone ----------
               ln -sf /usr/share/zoneinfo/Asia/Seoul /etc/localtime
               date
-
-              # Nginx
-              apt install -y nginx
+              
+              # ---------- Nginx ----------
+              apt-get install -y nginx
               systemctl enable nginx
               systemctl start nginx
-
-              # Swap (2GB)
+              
+              # ---------- Swap (2GB) ----------
               fallocate -l 2G /swapfile
               chmod 600 /swapfile
               mkswap /swapfile
               swapon /swapfile
               echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab
-
-              # Docker
+              
+              # ---------- Docker ----------
               curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
               sh /tmp/get-docker.sh
+              systemctl enable docker
+              systemctl start docker
               usermod -aG docker ubuntu || true
-
-              # SSM Agent
-              cd /tmp
-              curl -O https://s3.ap-northeast-2.amazonaws.com/amazon-ssm-ap-northeast-2/latest/debian_amd64/amazon-ssm-agent.deb
-              dpkg -i amazon-ssm-agent.deb
-              systemctl enable amazon-ssm-agent
-              systemctl start amazon-ssm-agent
-
-              # Nginx Reverse Proxy -> localhost:8080
+              
+              # ---------- SSM Agent (Ubuntu 22.04+, via snap) ----------
+              snap wait system seed || true
+              snap install amazon-ssm-agent --classic || true
+              systemctl enable --now snap.amazon-ssm-agent.amazon-ssm-agent.service || true
+              
+              # ---------- Nginx Reverse Proxy -> localhost:8080 ----------
               cat > /etc/nginx/sites-available/default <<'NGINX'
               server {
                 listen 80;
@@ -241,8 +243,9 @@ resource "aws_instance" "web_server" {
                 }
               }
               NGINX
-
-              nginx -s reload
+              
+              nginx -t && systemctl reload nginx
+              
               EOF
 
   tags = { Name = "web-server" }
@@ -461,4 +464,7 @@ output "s3_aws_access_key_id" {
 output "s3_aws_secret_access_key" {
   value     = aws_iam_access_key.s3_user_key.secret
   sensitive = true
+}
+output "rds_db_name" {
+  value = var.db_name
 }

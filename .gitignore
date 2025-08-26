@@ -15,6 +15,7 @@ crash.log
 .terraform
 override.tf
 override.tf.json
+*.csv
 
 # ----------------------------
 # AWS CLI 자격 증명 관련
