@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# trap 'echo "[ERR] line $LINENO"; exit 1' ERR
 # 1) Nginx 서버블록(HTTP) 작성
 # 발급한 도메인으로 변경 필요
 sudo bash -c 'cat >/etc/nginx/sites-available/default' <<'NGINX'
